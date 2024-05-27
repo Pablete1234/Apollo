@@ -11,6 +11,9 @@ dependencies {
     compileOnly(libs.bukkit)
     compileOnly(libs.protobuf)
 
+    compileOnly("net.kyori:adventure-platform-facet:4.3.2")
+    compileOnly("com.viaversion:viaversion-api:4.9.2")
+
     api(project(path = ":apollo-api", configuration = "shadow"))
     api(project(path = ":apollo-common", configuration = "shadow"))
 

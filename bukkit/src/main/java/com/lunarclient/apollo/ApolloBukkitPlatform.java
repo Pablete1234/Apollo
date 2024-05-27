@@ -66,6 +66,7 @@ import com.lunarclient.apollo.module.stopwatch.StopwatchModule;
 import com.lunarclient.apollo.module.stopwatch.StopwatchModuleImpl;
 import com.lunarclient.apollo.module.team.TeamModule;
 import com.lunarclient.apollo.module.team.TeamModuleImpl;
+import com.lunarclient.apollo.module.title.TitleFacet;
 import com.lunarclient.apollo.module.title.TitleModule;
 import com.lunarclient.apollo.module.title.TitleModuleImpl;
 import com.lunarclient.apollo.module.tntcountdown.TntCountdownModule;
@@ -80,11 +81,16 @@ import com.lunarclient.apollo.option.Options;
 import com.lunarclient.apollo.option.OptionsImpl;
 import com.lunarclient.apollo.stats.ApolloStats;
 import com.lunarclient.apollo.wrapper.BukkitApolloStats;
+import java.lang.reflect.Field;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.var;
+import net.kyori.adventure.platform.facet.Facet;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 
@@ -142,6 +148,10 @@ public final class ApolloBukkitPlatform implements PlatformPlugin, ApolloPlatfor
             ApolloManager.setConfigPath(this.plugin.getDataFolder().toPath());
             ApolloManager.loadConfiguration();
             ((ApolloModuleManagerImpl) Apollo.getModuleManager()).enableModules();
+
+            // Could be put into a module, or at least have some config
+            this.setupAdventureTitleFacet();
+
             ApolloManager.saveConfiguration();
         } catch (Throwable throwable) {
             this.getPlatformLogger().log(Level.SEVERE, "Unable to load Apollo configuration and modules!", throwable);
@@ -187,6 +197,24 @@ public final class ApolloBukkitPlatform implements PlatformPlugin, ApolloPlatfor
     @Override
     public Logger getPlatformLogger() {
         return Bukkit.getServer().getLogger();
+    }
+
+    private void setupAdventureTitleFacet() throws Exception {
+        Class<?> bukkitAudienceCls;
+        try {
+            bukkitAudienceCls = Class.forName("net.kyori.adventure.platform.bukkit.BukkitAudience");
+        } catch (ClassNotFoundException e) {
+            this.getPlatformLogger().warning("Skipping title audience setup due to missing BukkitAudience class");
+            return;
+        }
+        // If the class does exist, expect this to work fine.
+        Field titleFacets = bukkitAudienceCls.getDeclaredField("TITLE");
+        titleFacets.setAccessible(true);
+        @SuppressWarnings({"unchecked", "UnstableApiUsage"})
+        var list = (List<Facet.Title<Player, ?, ?, ?>>) titleFacets.get(null);
+
+        list.add(0, new TitleFacet());
+        this.getPlatformLogger().info("Successfully loaded apollo title facet");
     }
 
 }
